@@ -8,6 +8,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import de.ur.mi.android.demos.uhcounter.model.UhCounter;
+import de.ur.mi.android.demos.uhcounter.model.UhCounterChangeListener;
+
 /**
  * Uh-Counter-App (D14)
  *
@@ -22,17 +25,21 @@ import android.widget.TextView;
  * her gewechselt werden.
  *
  * Diese Activity stellt die notwendigen UI-Elemente der Uh-Counter-App dar, fängt die Interaktion
- * der Nutzer*innen mit den Buttons ab und aktualisiert entsprechen die Ausgabeelemente.
+ * der Nutzer*innen mit den Buttons ab. In den Callback-Methoden wird der  Zähler entsprechend
+ * angepasst. Diese Datenschicht der Anwendung ist dabei isoliert von der Activity in einer separaten
+ * Klasse implementiert. Änderungen an diesem "UhCounter" werden über eine einfache Listener-Schnittstelle
+ * mit registrierten Observern geteilt. Die Activity erfährt über diese Verbindung, wenn sich der Wert
+ * des Counters geändert hat und aktualisiert das Ausgabeelement mit dem jeweils aktuellen Zählerwert.
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements UhCounterChangeListener {
 
     /** Activites sind Klassen: Sie können über Instanzvariablen verfügen, z.b. für häufig genutzte
      * UI-Elemente oder Bestandteile der Programmlogik.
      */
     // Referenz auf das UI-Element, in dem der aktuelle Zählerstand angezeigt wird
     private TextView counterOutput;
-    // Int-Variable für aktuellen Ähm-Zählerstand
-    private int uhCounterValue;
+    // Counter für aktuellen Ähm-Zählerstand
+    private UhCounter uhCounter;
 
     /**
      * Beim Starten einer Activity wird automatisch diese Methode aufgerufen. Sie dient uns als
@@ -46,8 +53,18 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         // Verbindung mit einem bestimmten, vorbereiteten Layout in Form einer XML-Datei
         setContentView(R.layout.activity_main);
+        initCounter();
         initUI();
-        resetCounterValue();
+    }
+
+    /**
+     * Hier wird der Zähler initialisiert. Die Activity registriert sich als Listener, um über zukünftige
+     * Änderungen am internen Wert des Zählers informiert zu werden. Die vom hier bei verwendeten Interface
+     * vorgegebenen Methoden werden in der Activity implementiert.
+     */
+    private void initCounter() {
+        uhCounter = new UhCounter();
+        uhCounter.addOnUhCounterChangeListener(this);
     }
 
     /**
@@ -65,56 +82,24 @@ public class MainActivity extends AppCompatActivity {
          * im Code als anonyme, innere Klassen auf Basis der entsprechenden Interfaces erstellen und
          * dort die relevanten Callback-Methoden abfangen.
          */
-        increaseCounterButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                increaseCounterValue();
-            }
-        });
-        decreaseCounterButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                decreaseCounterValue();
-            }
-        });
-        resetCounterButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                resetCounterValue();
-            }
-        });
+        increaseCounterButton.setOnClickListener(view -> uhCounter.increaseCounterValue());
+        decreaseCounterButton.setOnClickListener(view -> uhCounter.decreaseCounterValue());
+        resetCounterButton.setOnClickListener(view -> uhCounter.resetCounterValue());
     }
 
     /**
-     * Erhöht den Ähm-Zähler um eins und aktualisiert das UI
+     * Trägt den übergebenen Wert der Zählervariable als Inhalt des Ausgabeelements ins UI ein
      */
-    private void increaseCounterValue() {
-        uhCounterValue++;
-        updateCounterView();
+    private void updateCounterView(int value) {
+        counterOutput.setText(String.valueOf(value));
     }
 
     /**
-     * Verringert den Ähm-Zähler um eins und aktualisiert das UI
+     * Wird vom Counter aufgerufen, wenn sich dessen interner Zählerstand verändert hat.
+     * @param value Die Anzahl der aktuell gezählten "Ähms".
      */
-    private void decreaseCounterValue() {
-        if(uhCounterValue > 0) {
-            uhCounterValue--;
-            updateCounterView();
-        }
-    }
-
-    /**
-     * Setzt den Ähm-Zähler auf 0 zurück und aktualisiert das UI
-     */
-    private void resetCounterValue() {
-        uhCounterValue = 0;
-        updateCounterView();
-    }
-
-    /**
-     * Trägt den aktuellen Wert der Zählervariable als Inhalt des Ausgabeelements ins UI ein
-     */
-    private void updateCounterView() {
-        counterOutput.setText(String.valueOf(uhCounterValue));
+    @Override
+    public void onCounterValueChanged(int value) {
+        updateCounterView(value);
     }
 }
